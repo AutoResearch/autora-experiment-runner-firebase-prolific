@@ -1,33 +1,20 @@
-# Your Theorist Name
+# AutoRA Firebase Prolific Runner
 
+AutoRA Firebase Prolific Runner provides runners to run experiments with Firebase and Prolific
 
-Include inline mathematics like this: \(3 < 4\)
+**WARNING:** The firebase prolific runner creates an experiment on prolific and runs recruits participants automatically. This is an
+early alpha version and should be used with extreme caution.
 
-Include block mathematics like this (don't forget the empty lines above and below the block):
+## Quick Start
 
-$$  
-y + 1 = 4 
-$$
+Install this in an environment using your chosen package manager. In this example we are using virtualenv
 
-... or this:
+Install:
+- python (3.8 or greater): https://www.python.org/downloads/
+- virtualenv: https://virtualenv.pypa.io/en/latest/installation.html
 
-\[
-E(\mathbf{v}, \mathbf{h}) = -\sum_{i,j}w_{ij}v_i h_j - \sum_i b_i v_i - \sum_j c_j h_j
-\]
+Install the Prolific Recruitment Manager as part of the autora package:
 
-... or this:
+pip install -U "autora[runner-firebase-prolific]"
 
-\begin{align}
-    p(v_i=1|\mathbf{h}) & = \sigma\left(\sum_j w_{ij}h_j + b_i\right) \\
-    p(h_j=1|\mathbf{v}) & = \sigma\left(\sum_i w_{ij}v_i + c_j\right)
-\end{align}
-
-
-Include inline mathematics like this \(x < 1\) or this $c = 3$ or this
-or block mathematics:
-
-\[
-x + 1 = 3
-\]
-
-
+**WARNING:** Both runners work with a specific set up of the firebase database. For starters, follow this guide to set up an experiment using firebase here: https://github.com/AutoResearch/cra-template-autora-firebase
