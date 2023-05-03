@@ -1,4 +1,4 @@
-# AutoRA Firebase Prolific Runner
+# AutoRA Firebase Prolific Experiment Runner
 
 AutoRA Firebase Prolific Runner provides runners to run experiments with Firebase and Prolific
 
