@@ -5,4 +5,5 @@ site_name: AutoRA Firebase Prolific Experiment Runner
 repo_url: 'https://github.com/autoresearch/autora-experiment-runner-firebase-prolific'
 
 nav:
-- 'index.md'
+- Home: 'index.md'
+- Quickstart: 'quick-start.md'
