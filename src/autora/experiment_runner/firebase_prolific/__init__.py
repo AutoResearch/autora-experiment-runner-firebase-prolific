@@ -1,11 +1,11 @@
 import time
 
-from autora.runner.experimentation_manager.firebase import (
+from autora.experiment_runner.experimentation_manager.firebase import (
     check_firebase_status,
     get_observations,
     send_conditions,
 )
-from autora.runner.recruitment_manager.prolific import (
+from autora.experiment_runner.recruitment_manager.prolific import (
     check_prolific_status,
     pause_study,
     setup_study,
