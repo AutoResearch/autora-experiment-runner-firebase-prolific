@@ -3,7 +3,7 @@
 name = "autora-experiment-runner-firebase-prolific"
 description = "AutoRA Firebase Prolific Experiment Runner provides experiment runners to run experiments with prolific and firebase"
 authors = [{ name = "Younes Strittmatter", email = "younes_strittmatter@brown.edu" }]
-dynamic = ["dynamic"]
+dynamic = ["version"]
 
 readme = "README.md"
 license = { text = "MIT License" }
