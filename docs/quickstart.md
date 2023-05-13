@@ -1,4 +1,4 @@
-## Quick Start
+# Quickstart Guide
 
 Install this in an environment using your chosen package manager. In this example we are using virtualenv
 
