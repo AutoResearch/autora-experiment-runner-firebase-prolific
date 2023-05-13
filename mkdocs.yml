@@ -6,4 +6,4 @@ repo_url: 'https://github.com/autoresearch/autora-experiment-runner-firebase-pro
 
 nav:
 - Home: 'index.md'
-- Quickstart: 'quick-start.md'
+- Quickstart: 'quickstart.md'
