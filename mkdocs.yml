@@ -2,7 +2,7 @@
 INHERIT: mkdocs/base.yml  # use the shared AutoRA configuration by default
 
 site_name: AutoRA Firebase Prolific Experiment Runner
-repo_url: 'https://github.com/autoresearch/autora-experiment-runner-firebase-prolific'
+repo_url: 'https://github.com/AutoResearch/autora-experiment-runner-firebase-prolific'
 
 nav:
 - Home: 'index.md'
