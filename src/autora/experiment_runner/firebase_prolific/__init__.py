@@ -10,6 +10,7 @@ from autora.experiment_runner.recruitment_manager.prolific import (
     pause_study,
     setup_study,
     start_study,
+    publish_study
 )
 
 
@@ -44,7 +45,7 @@ def _firebase_run(conditions, **kwargs):
 def _firebase_prolific_run(conditions, **kwargs):
     """
     Running an experiment with firebase to host the experiment and store the data
-    and prolific to recruite participants
+    and prolific to recruit participants
     Args:
         conditions: the conditions
         **kwargs: configuration of the experiment (this typically doesn't vary from cycle to cycle)
@@ -63,10 +64,12 @@ def _firebase_prolific_run(conditions, **kwargs):
         kwargs["study_url"],
         kwargs["study_completion_time"],
         kwargs["prolific_token"],
+        total_available_places=len(conditions),
+        completion_code=kwargs["completion_code"]
     )
 
     # get the specification on prolific
-    time_out = prolific_dict["maximum_allowed_time"]
+    time_out = prolific_dict["maximum_allowed_time"] * 60
     study_id = prolific_dict["id"]
 
     while True:
@@ -78,23 +81,30 @@ def _firebase_prolific_run(conditions, **kwargs):
         if prolific_dict:
             check_prolific = check_prolific_status(study_id, kwargs["prolific_token"])
             if (
-                check_prolific["number_of_submissions"]
-                >= check_prolific["total_available_places"]
+                    check_prolific["number_of_submissions"]
+                    >= check_prolific["total_available_places"] and check_firebase == "finished"
             ):
-                return get_observations("autora", kwargs["firebase_credentials"])
+                observation = get_observations("autora", kwargs["firebase_credentials"])
+                observation_list = [observation[key] for key in sorted(observation.keys())]
+                return observation_list
 
         # firebase places available
         if check_firebase == "finished":
-            return get_observations("autora", kwargs["firebase_credentials"])
+            pass
+            # return get_observations("autora", kwargs["firebase_credentials"])
         if check_firebase == "available":
+            if check_prolific["status"] == "UNPUBLISHED":
+                publish_study(
+                    study_id=study_id, prolific_token=kwargs["prolific_token"]
+                )
             if check_prolific["status"] == "PAUSED":
                 start_study(
-                    study_name=study_id, prolific_token=kwargs["prolific_token"]
+                    study_id=study_id, prolific_token=kwargs["prolific_token"]
                 )
-        if check_prolific == "unavailable":
+        if check_firebase == "unavailable":
             if check_prolific["status"] == "STARTED":
                 pause_study(
-                    study_name=study_id, prolific_token=kwargs["prolific_token"]
+                    study_id=study_id, prolific_token=kwargs["prolific_token"]
                 )
         time.sleep(kwargs["sleep_time"])
 
@@ -116,10 +126,10 @@ def firebase_prolific_runner(**kwargs):
         the runner
     """
 
-    def runner(x):
+    def run(x):
         return _firebase_prolific_run(x, **kwargs)
 
-    return runner
+    return run
 
 
 def firebase_runner(**kwargs):
