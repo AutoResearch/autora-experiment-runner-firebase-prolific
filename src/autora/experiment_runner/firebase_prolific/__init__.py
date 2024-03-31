@@ -10,7 +10,9 @@ from autora.experiment_runner.recruitment_manager.prolific import (
     pause_study,
     setup_study,
     start_study,
-    publish_study
+    publish_study,
+    get_submissions_incompleted,
+    request_return_all
 )
 
 
@@ -71,6 +73,7 @@ def _firebase_prolific_run(conditions, **kwargs):
     # get the specification on prolific
     time_out = prolific_dict["maximum_allowed_time"] * 60
     study_id = prolific_dict["id"]
+    counter = 1
 
     while True:
         # check firebase
@@ -79,6 +82,14 @@ def _firebase_prolific_run(conditions, **kwargs):
         )
         # check prolific
         if prolific_dict:
+            if not counter % 5:
+                request_return_all(study_id, kwargs["prolific_token"])
+                incomplete_submissions = get_submissions_incompleted(study_id,
+                                                                     kwargs["prolific_token"])
+                check_firebase = check_firebase_status(
+                    "autora", kwargs["firebase_credentials"], time_out, incomplete_submissions
+                )
+
             check_prolific = check_prolific_status(study_id, kwargs["prolific_token"])
             if (
                     check_prolific["number_of_submissions"]
@@ -107,6 +118,7 @@ def _firebase_prolific_run(conditions, **kwargs):
                     study_id=study_id, prolific_token=kwargs["prolific_token"]
                 )
         time.sleep(kwargs["sleep_time"])
+        counter += 1
 
 
 def firebase_prolific_runner(**kwargs):
