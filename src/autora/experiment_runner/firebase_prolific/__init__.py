@@ -13,6 +13,7 @@ from autora.experiment_runner.recruitment_manager.prolific import (
     publish_study,
     get_submissions_incompleted,
     request_return_all
+    approve_all_no_code
 )
 
 
@@ -55,6 +56,17 @@ def _firebase_prolific_run(conditions, **kwargs):
     Returns:
         observations
     """
+    if not 'exclude_studies' in kwargs:
+        exclude_studies = ["default"]
+    else:
+        exclude_studies = kwargs["exclude_studies"]
+    
+    if not 'approve_no_code' in kwargs:
+        print('Warning: Approving submissions with no code. Set approve_no_code to False if no code submissions should be requested to return')
+        approve_no_code = True
+    else:
+        approve_no_code = kwargs['approve_no_code']
+
 
     # set up study on firebase
     send_conditions("autora", conditions, kwargs["firebase_credentials"])
@@ -68,6 +80,7 @@ def _firebase_prolific_run(conditions, **kwargs):
         kwargs["prolific_token"],
         total_available_places=len(conditions),
         completion_code=kwargs["completion_code"]
+        exclude_studies=exclude_studies
     )
 
     # get the specification on prolific
@@ -83,7 +96,10 @@ def _firebase_prolific_run(conditions, **kwargs):
         # check prolific
         if prolific_dict:
             if not counter % 5:
-                request_return_all(study_id, kwargs["prolific_token"])
+                if approve_no_code:
+                    approve_all_no_code(study_id, kwargs["prolific_token"])
+                else:
+                    request_return_all(study_id, kwargs["prolific_token"])
                 incomplete_submissions = get_submissions_incompleted(study_id,
                                                                      kwargs["prolific_token"])
                 check_firebase = check_firebase_status(
