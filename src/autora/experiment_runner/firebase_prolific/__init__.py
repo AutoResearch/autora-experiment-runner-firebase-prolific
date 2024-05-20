@@ -13,7 +13,8 @@ from autora.experiment_runner.recruitment_manager.prolific import (
     publish_study,
     get_submissions_incompleted,
     request_return_all,
-    approve_all_no_code
+    approve_all_no_code,
+    approve_all
 )
 
 
@@ -96,6 +97,7 @@ def _firebase_prolific_run(conditions, **kwargs):
         # check prolific
         if prolific_dict:
             if not counter % 5:
+                approve_all(study_id, kwargs["prolific_token"])
                 if approve_no_code:
                     approve_all_no_code(study_id, kwargs["prolific_token"])
                 else:
@@ -109,7 +111,7 @@ def _firebase_prolific_run(conditions, **kwargs):
             check_prolific = check_prolific_status(study_id, kwargs["prolific_token"])
             if (
                     check_prolific["number_of_submissions"]
-                    >= check_prolific["total_available_places"] and check_firebase == "finished"
+                    >= check_prolific["total_available_places"]
             ):
                 if check_firebase == "finished":
                     observation = get_observations("autora", kwargs["firebase_credentials"])
