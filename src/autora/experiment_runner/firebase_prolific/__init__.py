@@ -12,7 +12,7 @@ from autora.experiment_runner.recruitment_manager.prolific import (
     start_study,
     publish_study,
     get_submissions_incompleted,
-    request_return_all
+    request_return_all,
     approve_all_no_code
 )
 
