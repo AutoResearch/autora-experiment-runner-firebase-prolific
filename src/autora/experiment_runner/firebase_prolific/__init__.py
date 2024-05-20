@@ -97,7 +97,6 @@ def _firebase_prolific_run(conditions, **kwargs):
         # check prolific
         if prolific_dict:
             if not counter % 5:
-                approve_all(study_id, kwargs["prolific_token"])
                 if approve_no_code:
                     approve_all_no_code(study_id, kwargs["prolific_token"])
                 else:
