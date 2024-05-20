@@ -95,10 +95,15 @@ def _firebase_prolific_run(conditions, **kwargs):
                     check_prolific["number_of_submissions"]
                     >= check_prolific["total_available_places"] and check_firebase == "finished"
             ):
-                observation = get_observations("autora", kwargs["firebase_credentials"])
-                observation_list = [observation[key] for key in sorted(observation.keys())]
-                return observation_list
-
+                if check_firebase == "finished":
+                    observation = get_observations("autora", kwargs["firebase_credentials"])
+                    observation_list = [observation[key] for key in sorted(observation.keys())]
+                    return observation_list
+                else:
+                    print("Warning: Number of collected participants was lower than submission number")
+                    observation = get_observations("autora", kwargs["firebase_credentials"])
+                    observation_list = [observation[key] for key in sorted(observation.keys())]
+                    return observation_list
         # firebase places available
         if check_firebase == "finished":
             pass
