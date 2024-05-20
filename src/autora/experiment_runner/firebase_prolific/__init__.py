@@ -79,7 +79,7 @@ def _firebase_prolific_run(conditions, **kwargs):
         kwargs["study_completion_time"],
         kwargs["prolific_token"],
         total_available_places=len(conditions),
-        completion_code=kwargs["completion_code"]
+        completion_code=kwargs["completion_code"],
         exclude_studies=exclude_studies
     )
 
