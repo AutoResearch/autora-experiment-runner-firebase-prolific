@@ -14,7 +14,7 @@ from autora.experiment_runner.recruitment_manager.prolific import (
     get_submissions_incompleted,
     request_return_all,
     approve_all_no_code,
-    approve_all
+    approve_all,
 )
 
 
@@ -29,7 +29,9 @@ def _firebase_run(conditions, **kwargs):
         observations
     """
     firebase_credentials = kwargs["firebase_credentials"]
-    time_out = kwargs["time_out"]
+    time_out = None
+    if "time_out" in kwargs:
+        time_out = kwargs["time_out"]
     sleep_time = kwargs["sleep_time"]
 
     # set up study on firebase
@@ -61,13 +63,13 @@ def _firebase_prolific_run(conditions, **kwargs):
         exclude_studies = ["default"]
     else:
         exclude_studies = kwargs["exclude_studies"]
-    
+
     if not 'approve_no_code' in kwargs:
-        print('Warning: Approving submissions with no code. Set approve_no_code to False if no code submissions should be requested to return')
+        print(
+            'Warning: Approving submissions with no code. Set approve_no_code to False if no code submissions should be requested to return')
         approve_no_code = True
     else:
         approve_no_code = kwargs['approve_no_code']
-
 
     # set up study on firebase
     send_conditions("autora", conditions, kwargs["firebase_credentials"])
@@ -92,7 +94,7 @@ def _firebase_prolific_run(conditions, **kwargs):
     while True:
         # check firebase
         check_firebase = check_firebase_status(
-            "autora", kwargs["firebase_credentials"], time_out
+            "autora", kwargs["firebase_credentials"], None
         )
         # check prolific
         if prolific_dict:
@@ -104,12 +106,12 @@ def _firebase_prolific_run(conditions, **kwargs):
                 incomplete_submissions = get_submissions_incompleted(study_id,
                                                                      kwargs["prolific_token"])
                 check_firebase = check_firebase_status(
-                    "autora", kwargs["firebase_credentials"], time_out, incomplete_submissions
+                    "autora", kwargs["firebase_credentials"], None, incomplete_submissions
                 )
 
             check_prolific = check_prolific_status(study_id, kwargs["prolific_token"])
             if (
-                    check_prolific["number_of_submissions"]
+                    check_prolific["number_of_submissions_finished"]
                     >= check_prolific["total_available_places"]
             ):
                 if check_firebase == "finished":
@@ -117,14 +119,19 @@ def _firebase_prolific_run(conditions, **kwargs):
                     observation_list = [observation[key] for key in sorted(observation.keys())]
                     return observation_list
                 else:
-                    print("Warning: Number of collected participants was lower than submission number")
+                    print(
+                        "Warning: Number of collected participants was lower than submission number")
                     observation = get_observations("autora", kwargs["firebase_credentials"])
                     observation_list = [observation[key] for key in sorted(observation.keys())]
                     return observation_list
         # firebase places available
         if check_firebase == "finished":
-            pass
-            # return get_observations("autora", kwargs["firebase_credentials"])
+            pause_study(
+                study_id=study_id, prolific_token=kwargs["prolific_token"]
+            )
+            print('Warning: Firebase finished but prolific open')
+            return get_observations("autora", kwargs["firebase_credentials"])
+
         if check_firebase == "available":
             if check_prolific["status"] == "UNPUBLISHED":
                 publish_study(
@@ -160,10 +167,10 @@ def firebase_prolific_runner(**kwargs):
         the runner
     """
 
-    def run(x):
+    def runner(x):
         return _firebase_prolific_run(x, **kwargs)
 
-    return run
+    return runner
 
 
 def firebase_runner(**kwargs):
