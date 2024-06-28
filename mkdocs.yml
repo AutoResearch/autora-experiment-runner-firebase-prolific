@@ -7,3 +7,5 @@ repo_url: 'https://github.com/AutoResearch/autora-experiment-runner-firebase-pro
 nav:
 - Home: 'index.md'
 - Quickstart: 'quickstart.md'
+- Examples:
+  - Basic Usage: 'Basic Usage.ipynb'
