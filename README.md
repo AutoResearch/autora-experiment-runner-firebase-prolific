@@ -18,3 +18,5 @@ Install the Prolific Recruitment Manager as part of the autora package:
 pip install -U "autora[experiment-runner-firebase-prolific]"
 
 **WARNING:** Both runners work with a specific set up of the firebase database. For starters, follow this guide to set up an experiment using firebase here: https://github.com/AutoResearch/cra-template-autora-firebase
+
+Study creation on Prolific uses the current Prolific REST schema via `autora-experiment-runner-recruitment-manager-prolific` (`setup_study`: `filters`, `completion_codes`). Use a recent release of that package together with this runner.
