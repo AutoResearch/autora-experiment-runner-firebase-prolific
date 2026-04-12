@@ -39,6 +39,11 @@ def _validate_firebase_prolific_kwargs(kwargs):
         raise ValueError("study_url must start with http:// or https://")
 
 
+def _observations_as_sorted_list(collection_name: str, firebase_credentials: dict):
+    observation = get_observations(collection_name, firebase_credentials)
+    return [observation[key] for key in sorted(observation.keys())]
+
+
 def _firebase_run(conditions, **kwargs):
     """
     Running an experiment with firebase to host the experiment and store the data.
@@ -63,9 +68,7 @@ def _firebase_run(conditions, **kwargs):
         check_firebase = check_firebase_status("autora", firebase_credentials, time_out)
         if check_firebase == "finished":
             # get observations returns a dict
-            observation = get_observations("autora", firebase_credentials)
-            observation_list = [observation[key] for key in sorted(observation.keys())]
-            return observation_list
+            return _observations_as_sorted_list("autora", firebase_credentials)
         time.sleep(sleep_time)
 
 
@@ -103,9 +106,14 @@ def _firebase_prolific_run(conditions, **kwargs):
         kwargs["study_completion_time"],
         kwargs["prolific_token"],
         total_available_places=len(conditions),
-        completion_code=kwargs["completion_code"],
+        completion_code=kwargs.get("completion_code", ""),
         exclude_studies=exclude_studies
     )
+    if not prolific_dict or "id" not in prolific_dict:
+        raise RuntimeError(
+            "Failed to set up Prolific study. "
+            "Check for existing uncompleted studies with the same name or API errors."
+        )
 
     # get the specification on prolific
     time_out = prolific_dict["maximum_allowed_time"] * 60
@@ -115,7 +123,7 @@ def _firebase_prolific_run(conditions, **kwargs):
     while True:
         # check firebase
         check_firebase = check_firebase_status(
-            "autora", kwargs["firebase_credentials"], None
+            "autora", kwargs["firebase_credentials"], time_out
         )
         # check prolific
         if prolific_dict:
@@ -127,7 +135,7 @@ def _firebase_prolific_run(conditions, **kwargs):
                 incomplete_submissions = get_submissions_incompleted(study_id,
                                                                      kwargs["prolific_token"])
                 check_firebase = check_firebase_status(
-                    "autora", kwargs["firebase_credentials"], None, incomplete_submissions
+                    "autora", kwargs["firebase_credentials"], time_out, incomplete_submissions
                 )
 
             check_prolific = check_prolific_status(study_id, kwargs["prolific_token"])
@@ -136,22 +144,18 @@ def _firebase_prolific_run(conditions, **kwargs):
                     >= check_prolific["total_available_places"]
             ):
                 if check_firebase == "finished":
-                    observation = get_observations("autora", kwargs["firebase_credentials"])
-                    observation_list = [observation[key] for key in sorted(observation.keys())]
-                    return observation_list
+                    return _observations_as_sorted_list("autora", kwargs["firebase_credentials"])
                 else:
                     print(
                         "Warning: Number of collected participants was lower than submission number")
-                    observation = get_observations("autora", kwargs["firebase_credentials"])
-                    observation_list = [observation[key] for key in sorted(observation.keys())]
-                    return observation_list
+                    return _observations_as_sorted_list("autora", kwargs["firebase_credentials"])
         # firebase places available
         if check_firebase == "finished":
             pause_study(
                 study_id=study_id, prolific_token=kwargs["prolific_token"]
             )
             print('Warning: Firebase finished but prolific open')
-            return get_observations("autora", kwargs["firebase_credentials"])
+            return _observations_as_sorted_list("autora", kwargs["firebase_credentials"])
 
         if check_firebase == "available":
             if check_prolific["status"] == "UNPUBLISHED":

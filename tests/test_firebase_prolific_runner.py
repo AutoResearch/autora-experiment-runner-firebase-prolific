@@ -42,7 +42,15 @@ def test_firebase_prolific_runner_transitions_without_real_services(monkeypatch)
     monkeypatch.setattr(
         runner_mod, "setup_study", lambda *args, **kwargs: {"id": "study-1", "maximum_allowed_time": 30}
     )
-    monkeypatch.setattr(runner_mod, "check_firebase_status", lambda *_args, **_kwargs: next(firebase_states))
+    seen_timeouts = []
+    seen_aborted = []
+
+    def fake_check_firebase_status(_collection, _creds, timeout, pids_aborted=None):
+        seen_timeouts.append(timeout)
+        seen_aborted.append(list(pids_aborted or []))
+        return next(firebase_states)
+
+    monkeypatch.setattr(runner_mod, "check_firebase_status", fake_check_firebase_status)
     monkeypatch.setattr(runner_mod, "check_prolific_status", lambda *_args, **_kwargs: next(prolific_states))
     monkeypatch.setattr(runner_mod, "get_observations", lambda *_args, **_kwargs: {"0": {"y": 1}})
     monkeypatch.setattr(runner_mod, "get_submissions_incompleted", lambda *_args, **_kwargs: [])
@@ -70,3 +78,25 @@ def test_firebase_prolific_runner_transitions_without_real_services(monkeypatch)
     assert calls["publish_study"] == 1
     assert calls["start_study"] == 1
     assert calls["pause_study"] == 1
+    assert all(t == 1800 for t in seen_timeouts)
+
+
+def test_firebase_prolific_runner_fails_when_setup_study_returns_none(monkeypatch):
+    monkeypatch.setattr(runner_mod, "send_conditions", lambda *_args, **_kwargs: None)
+    monkeypatch.setattr(runner_mod, "setup_study", lambda *_args, **_kwargs: None)
+
+    runner = runner_mod.firebase_prolific_runner(
+        firebase_credentials={"project_id": "demo"},
+        prolific_token="TOKEN",
+        sleep_time=0,
+        study_name="autora-test",
+        study_description="desc",
+        study_url="https://example.org",
+        study_completion_time=3,
+    )
+
+    try:
+        runner([{"condition": 0}])
+        assert False, "expected RuntimeError for empty setup_study result"
+    except RuntimeError as exc:
+        assert "Failed to set up Prolific study" in str(exc)
