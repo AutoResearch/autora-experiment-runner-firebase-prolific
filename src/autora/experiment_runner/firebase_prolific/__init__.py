@@ -1,4 +1,5 @@
 import time
+from datetime import datetime
 
 from autora.experiment_runner.experimentation_manager.firebase import (
     check_firebase_status,
@@ -16,6 +17,11 @@ from autora.experiment_runner.recruitment_manager.prolific import (
     approve_all_no_code,
     approve_all,
 )
+
+
+def _log(message: str):
+    ts = datetime.now().strftime("%H:%M:%S")
+    print(f"[firebase_prolific {ts}] {message}", flush=True)
 
 
 def _validate_firebase_prolific_kwargs(kwargs):
@@ -96,9 +102,11 @@ def _firebase_prolific_run(conditions, **kwargs):
         approve_no_code = kwargs['approve_no_code']
 
     # set up study on firebase
+    _log(f"Uploading {len(conditions)} conditions to Firebase")
     send_conditions("autora", conditions, kwargs["firebase_credentials"])
 
     # set up study on prolific
+    _log("Creating Prolific study draft")
     prolific_dict = setup_study(
         kwargs["study_name"],
         kwargs["study_description"],
@@ -118,6 +126,7 @@ def _firebase_prolific_run(conditions, **kwargs):
     # get the specification on prolific
     time_out = prolific_dict["maximum_allowed_time"] * 60
     study_id = prolific_dict["id"]
+    _log(f"Prolific study ready (id={study_id}, firebase_timeout={time_out}s)")
     counter = 1
 
     while True:
@@ -125,27 +134,42 @@ def _firebase_prolific_run(conditions, **kwargs):
         check_firebase = check_firebase_status(
             "autora", kwargs["firebase_credentials"], time_out
         )
+        _log(f"Loop {counter}: Firebase status={check_firebase}")
         if check_firebase == "finished":
             # Firebase completion is sufficient to terminate and return observations.
             # Avoid extra Prolific API calls that can stall shutdown.
+            _log("Firebase finished; returning observations")
             return _observations_as_sorted_list("autora", kwargs["firebase_credentials"])
         # check prolific
         if prolific_dict:
             incomplete_submissions = get_submissions_incompleted(
                 study_id, kwargs["prolific_token"]
             )
+            if incomplete_submissions:
+                _log(
+                    f"Loop {counter}: freeing {len(incomplete_submissions)} returned/timed-out participants"
+                )
             check_firebase = check_firebase_status(
                 "autora", kwargs["firebase_credentials"], time_out, incomplete_submissions
             )
             if check_firebase == "finished":
+                _log("Firebase finished after abort cleanup; returning observations")
                 return _observations_as_sorted_list("autora", kwargs["firebase_credentials"])
             if not counter % 5:
                 if approve_no_code:
+                    _log("Auto-approving no-code submissions")
                     approve_all_no_code(study_id, kwargs["prolific_token"])
                 else:
+                    _log("Requesting return for no-code submissions")
                     request_return_all(study_id, kwargs["prolific_token"])
 
             check_prolific = check_prolific_status(study_id, kwargs["prolific_token"])
+            _log(
+                "Loop "
+                f"{counter}: Prolific status={check_prolific['status']} "
+                f"finished={check_prolific['number_of_submissions_finished']}/"
+                f"{check_prolific['total_available_places']}"
+            )
             if (
                     check_prolific["number_of_submissions_finished"]
                     >= check_prolific["total_available_places"]
@@ -159,15 +183,18 @@ def _firebase_prolific_run(conditions, **kwargs):
         # firebase places available
         if check_firebase == "available":
             if check_prolific["status"] == "UNPUBLISHED":
+                _log("Publishing Prolific study")
                 publish_study(
                     study_id=study_id, prolific_token=kwargs["prolific_token"]
                 )
             if check_prolific["status"] == "PAUSED":
+                _log("Resuming paused Prolific study")
                 start_study(
                     study_id=study_id, prolific_token=kwargs["prolific_token"]
                 )
         if check_firebase == "unavailable":
             if check_prolific["status"] == "STARTED":
+                _log("Pausing Prolific study (no free Firebase slots)")
                 pause_study(
                     study_id=study_id, prolific_token=kwargs["prolific_token"]
                 )
