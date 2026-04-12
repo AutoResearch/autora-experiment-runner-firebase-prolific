@@ -18,6 +18,27 @@ from autora.experiment_runner.recruitment_manager.prolific import (
 )
 
 
+def _validate_firebase_prolific_kwargs(kwargs):
+    required = [
+        "firebase_credentials",
+        "sleep_time",
+        "study_name",
+        "study_description",
+        "study_url",
+        "study_completion_time",
+        "prolific_token",
+    ]
+    missing = [k for k in required if k not in kwargs or kwargs[k] in (None, "")]
+    if missing:
+        raise ValueError(
+            "firebase_prolific_runner missing required arguments: "
+            + ", ".join(sorted(missing))
+        )
+    study_url = str(kwargs["study_url"])
+    if not (study_url.startswith("http://") or study_url.startswith("https://")):
+        raise ValueError("study_url must start with http:// or https://")
+
+
 def _firebase_run(conditions, **kwargs):
     """
     Running an experiment with firebase to host the experiment and store the data.
@@ -166,6 +187,7 @@ def firebase_prolific_runner(**kwargs):
     Returns:
         the runner
     """
+    _validate_firebase_prolific_kwargs(kwargs)
 
     def runner(x):
         return _firebase_prolific_run(x, **kwargs)

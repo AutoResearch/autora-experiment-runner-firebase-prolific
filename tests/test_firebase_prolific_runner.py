@@ -1,6 +1,22 @@
 from autora.experiment_runner import firebase_prolific as runner_mod
 
 
+def test_firebase_prolific_runner_validates_required_kwargs():
+    try:
+        runner_mod.firebase_prolific_runner(
+            firebase_credentials={"project_id": "demo"},
+            sleep_time=0,
+            study_name="autora-test",
+            study_description="desc",
+            study_url="example.org",
+            study_completion_time=3,
+            prolific_token="TOKEN",
+        )
+        assert False, "expected ValueError for invalid URL"
+    except ValueError as exc:
+        assert "study_url must start" in str(exc)
+
+
 def test_firebase_prolific_runner_transitions_without_real_services(monkeypatch):
     calls = {
         "send_conditions": 0,
