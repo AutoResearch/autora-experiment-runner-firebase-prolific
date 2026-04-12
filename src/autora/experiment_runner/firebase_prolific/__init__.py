@@ -125,6 +125,10 @@ def _firebase_prolific_run(conditions, **kwargs):
         check_firebase = check_firebase_status(
             "autora", kwargs["firebase_credentials"], time_out
         )
+        if check_firebase == "finished":
+            # Firebase completion is sufficient to terminate and return observations.
+            # Avoid extra Prolific API calls that can stall shutdown.
+            return _observations_as_sorted_list("autora", kwargs["firebase_credentials"])
         # check prolific
         if prolific_dict:
             incomplete_submissions = get_submissions_incompleted(
@@ -133,6 +137,8 @@ def _firebase_prolific_run(conditions, **kwargs):
             check_firebase = check_firebase_status(
                 "autora", kwargs["firebase_credentials"], time_out, incomplete_submissions
             )
+            if check_firebase == "finished":
+                return _observations_as_sorted_list("autora", kwargs["firebase_credentials"])
             if not counter % 5:
                 if approve_no_code:
                     approve_all_no_code(study_id, kwargs["prolific_token"])
@@ -151,13 +157,6 @@ def _firebase_prolific_run(conditions, **kwargs):
                         "Warning: Number of collected participants was lower than submission number")
                     return _observations_as_sorted_list("autora", kwargs["firebase_credentials"])
         # firebase places available
-        if check_firebase == "finished":
-            pause_study(
-                study_id=study_id, prolific_token=kwargs["prolific_token"]
-            )
-            print('Warning: Firebase finished but prolific open')
-            return _observations_as_sorted_list("autora", kwargs["firebase_credentials"])
-
         if check_firebase == "available":
             if check_prolific["status"] == "UNPUBLISHED":
                 publish_study(
