@@ -127,16 +127,17 @@ def _firebase_prolific_run(conditions, **kwargs):
         )
         # check prolific
         if prolific_dict:
+            incomplete_submissions = get_submissions_incompleted(
+                study_id, kwargs["prolific_token"]
+            )
+            check_firebase = check_firebase_status(
+                "autora", kwargs["firebase_credentials"], time_out, incomplete_submissions
+            )
             if not counter % 5:
                 if approve_no_code:
                     approve_all_no_code(study_id, kwargs["prolific_token"])
                 else:
                     request_return_all(study_id, kwargs["prolific_token"])
-                incomplete_submissions = get_submissions_incompleted(study_id,
-                                                                     kwargs["prolific_token"])
-                check_firebase = check_firebase_status(
-                    "autora", kwargs["firebase_credentials"], time_out, incomplete_submissions
-                )
 
             check_prolific = check_prolific_status(study_id, kwargs["prolific_token"])
             if (

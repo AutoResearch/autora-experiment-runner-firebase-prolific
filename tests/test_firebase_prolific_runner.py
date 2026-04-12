@@ -28,7 +28,20 @@ def test_firebase_prolific_runner_transitions_without_real_services(monkeypatch)
     def fake_send_conditions(*_args, **_kwargs):
         calls["send_conditions"] += 1
 
-    firebase_states = iter(["available", "available", "unavailable", "finished"])
+    # check_firebase_status is called twice per loop:
+    # first without aborted IDs, then again with aborted IDs from Prolific.
+    firebase_states = iter(
+        [
+            "available",
+            "available",
+            "available",
+            "available",
+            "unavailable",
+            "unavailable",
+            "finished",
+            "finished",
+        ]
+    )
     prolific_states = iter(
         [
             {"status": "UNPUBLISHED", "number_of_submissions_finished": 0, "total_available_places": 2},
@@ -79,6 +92,7 @@ def test_firebase_prolific_runner_transitions_without_real_services(monkeypatch)
     assert calls["start_study"] == 1
     assert calls["pause_study"] == 1
     assert all(t == 1800 for t in seen_timeouts)
+    assert all(isinstance(pids, list) for pids in seen_aborted)
 
 
 def test_firebase_prolific_runner_fails_when_setup_study_returns_none(monkeypatch):
