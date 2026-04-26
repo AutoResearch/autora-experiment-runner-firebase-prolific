@@ -150,6 +150,14 @@ def _firebase_prolific_run(conditions, **kwargs):
         completion_code=kwargs.get("completion_code", ""),
         exclude_studies=exclude_studies,
         reward=int(kwargs.get("reward", 0) or 0),
+        # Optional project pin. Required for tokens whose effective scope is
+        # project-level (typical for shared lab accounts): without it the
+        # study lands outside the token's reach and the subsequent PUBLISH
+        # transition 400s with error_code 140007 ("A Researcher is not
+        # allowed to publish a UNPUBLISHED study"). Default None keeps
+        # existing single-workspace setups unaffected — Prolific then
+        # routes the new study to the token's default location.
+        project_id=kwargs.get("project_id"),
     )
     if not prolific_dict or "id" not in prolific_dict:
         raise RuntimeError(
