@@ -4,6 +4,7 @@ from datetime import datetime
 from autora.experiment_runner.experimentation_manager.firebase import (
     check_firebase_status,
     get_observations,
+    get_observations_with_meta,
     send_conditions,
 )
 from autora.experiment_runner.recruitment_manager.prolific import (
@@ -46,8 +47,36 @@ def _validate_firebase_prolific_kwargs(kwargs):
 
 
 def _observations_as_sorted_list(collection_name: str, firebase_credentials: dict):
-    observation = get_observations(collection_name, firebase_credentials)
-    return [observation[key] for key in sorted(observation.keys())]
+    """Return observations as a list ordered by slot key.
+
+    Each element is an envelope dict::
+
+        {
+            "slot_key":     <autora condition slot key, str>,
+            "prolific_pid": <Prolific participant id from autora_meta.<slot>.pId,
+                             or None when the slot was claimed without a
+                             Prolific URL (local dev)>,
+            "obs":          <observation payload from setObservation>,
+        }
+
+    Downstream parsers in sweetbean (`parse_autora_observations`) accept
+    this envelope shape, so per-subject reports can carry `prolific_pid`
+    end-to-end (kept and dropped subjects alike — important for payment).
+
+    Pre-patch this helper returned a list of bare observation strings; the
+    envelope is a strict superset and the obs string is still available
+    under the ``obs`` key, so any caller that previously did
+    ``json.loads(item)`` should switch to ``json.loads(item["obs"])``.
+    """
+    joined = get_observations_with_meta(collection_name, firebase_credentials)
+    return [
+        {
+            "slot_key": key,
+            "prolific_pid": joined[key].get("pId"),
+            "obs": joined[key].get("obs"),
+        }
+        for key in sorted(joined.keys())
+    ]
 
 
 def _firebase_run(conditions, **kwargs):
@@ -107,6 +136,10 @@ def _firebase_prolific_run(conditions, **kwargs):
 
     # set up study on prolific
     _log("Creating Prolific study draft")
+    # `reward` is the per-participant payment in the smallest currency unit
+    # (cents / pence). 0 (default) keeps the upstream auto-calc inside
+    # setup_study (20 * estimated_completion_time, i.e. ~$12/hour). Pass an
+    # explicit value to anchor at e.g. Prolific's policy minimum.
     prolific_dict = setup_study(
         kwargs["study_name"],
         kwargs["study_description"],
@@ -115,7 +148,8 @@ def _firebase_prolific_run(conditions, **kwargs):
         kwargs["prolific_token"],
         total_available_places=len(conditions),
         completion_code=kwargs.get("completion_code", ""),
-        exclude_studies=exclude_studies
+        exclude_studies=exclude_studies,
+        reward=int(kwargs.get("reward", 0) or 0),
     )
     if not prolific_dict or "id" not in prolific_dict:
         raise RuntimeError(
