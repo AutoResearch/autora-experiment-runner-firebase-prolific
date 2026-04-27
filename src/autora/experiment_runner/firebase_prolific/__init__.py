@@ -222,6 +222,26 @@ def _firebase_prolific_run(conditions, **kwargs):
                     print(
                         "Warning: Number of collected participants was lower than submission number")
                     return _observations_as_sorted_list("autora", kwargs["firebase_credentials"])
+
+            # Prolific itself reports the study is finished. This happens when
+            # places_taken < total_available_places but every settled
+            # submission accounts for the original recruit budget (e.g. 49
+            # APPROVED + 6 RETURNED = 55 submissions consumed all 50 places
+            # plus retries; Prolific then auto-flips to COMPLETED). The
+            # ``finished >= total_available_places`` check above does NOT fire
+            # in that case (49 < 50), but no new participant will ever join,
+            # so spinning on the "available Firebase slot" cleanup loop wastes
+            # cycles forever. Treat a Prolific-side COMPLETED status as a hard
+            # terminate and return whatever observations Firebase has — the
+            # caller handles the under-recruit case (just like the warning
+            # branch above).
+            if check_prolific["status"] == "COMPLETED":
+                _log(
+                    f"Prolific study marked COMPLETED with "
+                    f"finished={check_prolific['number_of_submissions_finished']}/"
+                    f"{check_prolific['total_available_places']}; returning observations"
+                )
+                return _observations_as_sorted_list("autora", kwargs["firebase_credentials"])
         # firebase places available
         if check_firebase == "available":
             if check_prolific["status"] == "UNPUBLISHED":
